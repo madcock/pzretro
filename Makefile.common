@@ -23,6 +23,8 @@ SOURCES_C += \
 
 CFLAGS += -D_GNU_SOURCE -DCONFIG_VERSION=\"2021-03-27\"
 
+ifeq (,$(findstring sf2000,$(platform)))
 CXXFLAGS += -pthread
 CFLAGS += -pthread
 LDFLAGS += -pthread -ldl
+endif
