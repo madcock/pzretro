@@ -1,11 +1,15 @@
 SRC_DIR = $(CORE_DIR)/src
 LIBRETRO_DIR = $(SRC_DIR)/libretro
-QUICKJS_SRC_DIR = $(SRC_DIR)/quickjs-2021-03-27
+QUICKJS_SRC_DIR = $(SRC_DIR)/quickjs-ng
 
 INCFLAGS := \
 	-I$(SRC_DIR) \
-	-I$(LIBRETRO_DIR) \
-    -I$(QUICKJS_SRC_DIR)
+	-I$(LIBRETRO_DIR)/include \
+	-I$(QUICKJS_SRC_DIR)
+
+ifneq (,$(findstring msvc2003,$(platform)))
+	INCFLAGS += -I$(LIBRETRO_DIR)/include/compat/msvc
+endif
 
 COREDEFINES = \
 	-D__LIBRETRO__
@@ -16,15 +20,19 @@ CXXFLAGS += -DUSE_PRECOMPILED_BUNDLE
 
 SOURCES_C += \
     $(QUICKJS_SRC_DIR)/quickjs.c \
+    $(QUICKJS_SRC_DIR)/libbf.c \
     $(QUICKJS_SRC_DIR)/libregexp.c \
     $(QUICKJS_SRC_DIR)/libunicode.c \
     $(QUICKJS_SRC_DIR)/cutils.c \
     $(QUICKJS_SRC_DIR)/quickjs-libc.c
 
-CFLAGS += -D_GNU_SOURCE -DCONFIG_VERSION=\"2021-03-27\"
+CFLAGS += -D_GNU_SOURCE -DCONFIG_VERSION=\"2024-01-13\"
 
+# Add pthread to everything but msvc
 ifeq (,$(findstring sf2000,$(platform)))
-CXXFLAGS += -pthread
-CFLAGS += -pthread
-LDFLAGS += -pthread -ldl
+ifeq (,$(findstring msvc,$(platform)))
+CXXFLAGS += -lpthread
+CFLAGS += -lpthread
+LDFLAGS += -lpthread -ldl
+endif
 endif

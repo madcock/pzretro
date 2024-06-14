@@ -77,9 +77,19 @@ void retro_cheat_reset()
     // Empty
 }
 
-void retro_cheat_set(unsigned /*index*/, bool /*enabled*/, const char */*code*/)
+void retro_cheat_set(unsigned index, bool enabled, const char *code)
 {
-    // Empty
+    if (enabled) {
+        std::string code_string(code);
+        if (code_string == "next") {
+            event::push(event::Event(true, 'N'));
+            debug_print("puzzlescript: Cheat: Next Level\n");
+        }
+        else if (code_string == "previous") {
+            event::push(event::Event(true, 'P'));
+            debug_print("puzzlescript: Cheat: Previous Level\n");
+        }
+    }
 }
 
 void update_variables()
@@ -257,6 +267,28 @@ void retro_set_input_state(retro_input_state_t cb)
     input_state_cb = cb;
 }
 
+/**
+ * Initialize the input descriptors.
+ * 
+ * @see RETRO_ENVIRONMENT_SET_INPUT_DESCRIPTORS
+ */
+void retro_init_input_descriptors()
+{
+	struct retro_input_descriptor desc[] = {
+		{ 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A, "Action Button" },
+		{ 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L, "Escape" },
+		{ 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y, "Undo" },
+		{ 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START, "Restart" },
+		{ 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT, "Left" },
+		{ 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP, "Up" },
+		{ 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT, "Right" },
+		{ 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN, "Down" },
+		{ 0 },
+	};
+
+	environ_cb(RETRO_ENVIRONMENT_SET_INPUT_DESCRIPTORS, desc);
+}
+
 void retro_init()
 {
     struct retro_log_callback log;
@@ -272,6 +304,8 @@ void retro_init()
         js::set_debug_print(debug_print);
         js::set_error_print(error_print);
     }
+
+    retro_init_input_descriptors();
 }
 
 void retro_deinit()
@@ -332,9 +366,14 @@ void retro_run()
 
     // Get input for frame
     input_poll_cb();
-    for (auto const & binding : joypad_keys) {
-        auto const & key{binding.first};
-        auto const & val{binding.second};
+
+    // Iterate through the map
+    for (std::map<int, char>::iterator binding = joypad_keys.begin(); binding != joypad_keys.end(); binding++) {
+        // Grab the key and the value for the input in PuzzleScript.
+        int key = binding->first;
+        char val = binding->second;
+
+        // Check the state value.
         if (!joypad_old_state[key] && input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, key)) {
             if (key == RETRO_DEVICE_ID_JOYPAD_LEFT) {
                 // Check for SELECT cheatcodes
